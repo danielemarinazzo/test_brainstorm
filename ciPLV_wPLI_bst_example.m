@@ -1,8 +1,12 @@
 clear;clc
-load('test.mat');
+% uncomment/comment accordingly below.
+% test_channels is 274 variables, 361 time points
+% test_vertices is 4002 variables, 52 time points
+% load('test_channels.mat');
+load('test_vertices.mat')
+HA=HA(1,:); % this is for 1xN scenario, comment for NxN
 [nA,~]=size(HA);
 [nB,nt]=size(HB);
-R_wPLI=zeros(nA,nB);
 
 
 % PLV
@@ -25,7 +29,7 @@ disp(['ciPLV, ' num2str(t) ' seconds']);
 
 % wPLI
 tic
-R_wPLI=zeros(nA,nB);
+R_wPLI=zeros(nB,nA);
 for itime=1:nt
     phaseA_t = HA(:,itime) ./ abs(HA(:,itime));
     phaseB_t = HB(:,itime) ./ abs(HB(:,itime));
@@ -84,3 +88,12 @@ else
     c=compareconn(R_ciPLV,wPLI);
 end
 disp(['comparison between ciPLV and wPLI = ' num2str(c)])
+
+[nr,nc]=size(R_ciPLV);
+if nr==nc
+    N=max(nr,nc);
+    Isubdiag = find(tril(ones(N),-1));
+    R_ciPLV=R_ciPLV(Isubdiag);
+    wPLI_db=wPLI_db(Isubdiag);
+end
+scatter(R_ciPLV,wPLI_db);xlim([-.05 1.05]);ylim([-.05 1.05])
