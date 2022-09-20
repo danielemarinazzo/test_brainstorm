@@ -141,17 +141,20 @@ for imeas=1:length(measures)
         end
     end
 end
+figure
 set(groot,'defaultAxesTickLabelInterpreter','none');
 imagesc(comp_meas);%colormap gray
 set(gca,'XTick',1:length(measures),'XTickLabel',measures)
 set(gca,'YTick',1:length(measures),'YTickLabel',measures)
 xtickangle(45);colorbar;
 
-% [nr,nc]=size(R_ciPLV);
-% if nr==nc
-%     N=max(nr,nc);
-%     Isubdiag = find(tril(ones(N),-1));
-%     R_ciPLV=R_ciPLV(Isubdiag);
-%     wPLI_db=wPLI_db(Isubdiag);
-% end
-% scatter(R_ciPLV,wPLI_db);xlim([-.05 1.05]);ylim([-.05 1.05])
+figure
+[nr,nc]=size(ciPLV);
+if nr==nc
+    N=max(nr,nc);
+    Isubdiag = find(tril(ones(N),-1));
+    ciPLV_vec=ciPLV(Isubdiag);
+    wPLI_db_ft_vec=wPLI_ft(Isubdiag);
+end
+scatter(ciPLV_vec,wPLI_db_ft_vec);xlim([-.05 1.05]);ylim([-.05 1.05])
+xlabel('ciPLV');ylabel('debiased wPLI')
