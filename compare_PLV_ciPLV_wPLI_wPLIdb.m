@@ -34,10 +34,8 @@ disp(['ciPLV, ' num2str(t) ' seconds']);
 tic
 num=zeros(nB,nA);
 den=zeros(nB,nA);
-phaseA = HA ./ abs(HA);
-phaseB = HB ./ abs(HB);
 for t=1:nt
-    cdi=imag(phaseA(:,t) * phaseB(:,t)');
+    cdi=imag(HA(:,t) * HB(:,t)');
     num=num+(abs(cdi).*sign(cdi))';
     den=den+abs(cdi)';
 end
@@ -45,54 +43,24 @@ wPLI_sc=abs(num/nt)./(den/nt);
 t=toc;
 disp(['wPLI sign cdi, ' num2str(t) ' seconds']);
 
-% wPLI based on sin differences
-tic
-data=real(HB);
-[nc,ns]=size(HB);
-phs=angle(HB);
-tpli_num = complex(zeros(nc));
-tpli_den = complex(zeros(nc));
-for s=1: ns
-    dphs=bsxfun(@minus, phs(:, s), phs(:, s)');
-    tpli_den=tpli_den+abs(sin(dphs));
-    tpli_num=tpli_num+sin(dphs);
-end
-wPLI_sindiff=abs(tpli_num/ns)./(abs(tpli_den)/ ns);
-t=toc;
-disp(['wPLI sin differences, ' num2str(t) ' seconds']);
-
 % wPLI ratio imag csd
 tic
-phaseA = HA ./ abs(HA);
-phaseB = HB ./ abs(HB);
-num = imag(phaseA*phaseB');
+num = imag(HA*HB');
 den = zeros(nA,nB);
 for t = 1:nt
-    den = den + abs(imag(phaseA(:,t) * phaseB(:,t)'));
+    den = den + abs(imag(HA(:,t) * HB(:,t)'));
 end
 wPLI_csdrat = abs(num./den);
 t=toc;
 disp(['wPLI ratio imag csd, ' num2str(t) ' seconds']);
 
-% wPLI based on sine of a ratio without loop
-tic
-HA=HA';HB=HB';
-sin_pd=sin(angle(repmat(HA,[1 nA])./repelem(HB,1, nA)));
-a=abs(mean(sin_pd)./mean(abs(sin_pd)));
-N = numel(a) ;
-wPLI_sinrat = NaN(ceil(sqrt(N))) ;
-wPLI_sinrat(1:N) = a ;
-t=toc;
-disp(['wPLI sine ratio, ' num2str(t) ' seconds']);
-
-
 % wPLI debiased ratio imag csd
 tic
-num = imag(phaseA*phaseB');
+num = imag(HA*HB');
 den = zeros(nA,nB);sqd = zeros(nA,nB);
 for t = 1:nt
-    den = den + abs(imag(phaseA(:,t) * phaseB(:,t)'));
-    sqd = sqd + imag(phaseA(:,t)*phaseB(:,t)').^2;
+    den = den + abs(imag(HA(:,t) * HB(:,t)'));
+    sqd = sqd + imag(HA(:,t)*HB(:,t)').^2;
 end
 wPLI_db_csdrat = (num.^2-sqd)./(den.^2-sqd);
 t=toc;
@@ -104,8 +72,8 @@ tic
 num = zeros(nA,nB);
 den = zeros(nA,nB);
 for t = 1:nt
-    num = num + imag(phaseA(:,t)*phaseB(:,t)');
-    den = den + abs(imag(phaseA(:,t) * phaseB(:,t)'));
+    num = num + imag(HA(:,t)*HB(:,t)');
+    den = den + abs(imag(HA(:,t) * HB(:,t)'));
 end
 wPLI_ft = abs(num./den);
 t=toc;
@@ -118,16 +86,16 @@ num = zeros(nA,nB);
 den = zeros(nA,nB);
 sqd = zeros(nA,nB);
 for t = 1:nt
-    num = num + imag(phaseA(:,t)*phaseB(:,t)');
-    den = den + abs(imag(phaseA(:,t) * phaseB(:,t)'));
-    sqd = sqd + imag(phaseA(:,t)*phaseB(:,t)').^2;
+    num = num + imag(HA(:,t)*HB(:,t)');
+    den = den + abs(imag(HA(:,t) * HB(:,t)'));
+    sqd = sqd + imag(HA(:,t)*HB(:,t)').^2;
 end
 wPLI_db_ft = (num.^2-sqd)./(den.^2-sqd);
 t=toc;
 disp(['wPLI db fieldtrip, ' num2str(t) ' seconds']);
 
 
-measures={'PLV','ciPLV','wPLI_sc','wPLI_sindiff','wPLI_sinrat',...
+measures={'PLV','ciPLV','wPLI_sc',...
     'wPLI_csdrat','wPLI_ft','wPLI_db_csdrat','wPLI_db_ft'};
 comp_meas=ones(length(measures));
 for imeas=1:length(measures)
