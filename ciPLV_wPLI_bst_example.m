@@ -2,9 +2,9 @@ clear;clc
 % uncomment/comment accordingly below.
 % test_channels is 274 variables, 361 time points
 % test_vertices is 4002 variables, 52 time points
-% load('test_channels.mat');
-load('test_vertices.mat')
-HA=HA(1,:); % this is for 1xN scenario, comment for NxN
+load('test_channels.mat');
+%load('test_vertices.mat')
+%HA=HA(1,:); % this is for 1xN scenario, comment for NxN
 [nA,~]=size(HA);
 [nB,nt]=size(HB);
 
@@ -14,7 +14,7 @@ tic
 phaseA = HA ./ abs(HA);
 phaseB = HB ./ abs(HB);
 csd=phaseA*phaseB';
-R_PLV=abs(csd/nt);
+PLV=abs(csd/nt);
 t=toc;
 disp(['PLV, ' num2str(t) ' seconds']);
 
@@ -23,77 +23,135 @@ tic
 phaseA = HA ./ abs(HA);
 phaseB = HB ./ abs(HB);
 csd=phaseA*phaseB';
-R_ciPLV=abs((imag((csd))/nt)./sqrt(1-(real((csd))/nt).^2));
+ciPLV=abs((imag((csd))/nt)./sqrt(1-(real((csd))/nt).^2));
 t=toc;
 disp(['ciPLV, ' num2str(t) ' seconds']);
 
-% wPLI
+% wPLI sign cdi
 tic
-R_wPLI=zeros(nB,nA);
-for itime=1:nt
-    phaseA_t = HA(:,itime) ./ abs(HA(:,itime));
-    phaseB_t = HB(:,itime) ./ abs(HB(:,itime));
-    csd=phaseA_t*phaseB_t';
-    cdi = imag(csd);
-    R_wPLI=R_wPLI+(abs(cdi).*sign(cdi))'./abs(cdi)';
+num=zeros(nB,nA);
+den=zeros(nB,nA);
+phaseA = HA ./ abs(HA);
+phaseB = HB ./ abs(HB);
+for t=1:nt
+    cdi=imag(phaseA(:,t) * phaseB(:,t)');
+    num=num+(abs(cdi).*sign(cdi))';
+    den=den+abs(cdi)';
 end
-wPLI=abs(R_wPLI/nt);
+wPLI_sc=abs(num/nt)./(den/nt);
 t=toc;
-disp(['wPLI, ' num2str(t) ' seconds']);
+disp(['wPLI sign cdi, ' num2str(t) ' seconds']);
 
-% wPLI debiased based on sine differences
+% wPLI based on sin differences
 tic
-HA=HA';HB=HB';
-sin_pd=sin(angle(repmat(HA,[1 nA])./repelem(HB,1, nA)));
-a=abs(mean(sin_pd)./mean(abs(sin_pd)));
-R_wPLI(1:length(a))=a;
+data=real(HB);
+[nc,ns]=size(HB);
+phs=angle(HB);
+tpli_num = complex(zeros(nc));
+tpli_den = complex(zeros(nc));
+for s=1: ns
+    dphs=bsxfun(@minus, phs(:, s), phs(:, s)');
+    tpli_den=tpli_den+abs(sin(dphs));
+    tpli_num=tpli_num+sin(dphs);
+end
+wPLI_sindiff=abs(tpli_num/ns)./(abs(tpli_den)/ ns);
 t=toc;
-disp(['wPLI phase difference, ' num2str(t) ' seconds']);
+disp(['wPLI sin differences, ' num2str(t) ' seconds']);
 
-% faster implementation of wPLI (debiased), identical to the previous one
+% wPLI ratio imag csd
 tic
-num = abs(imag(phaseA*phaseB'));
+phaseA = HA ./ abs(HA);
+phaseB = HB ./ abs(HB);
+num = imag(phaseA*phaseB');
 den = zeros(nA,nB);
 for t = 1:nt
     den = den + abs(imag(phaseA(:,t) * phaseB(:,t)'));
 end
-wPLI_db = num./den;
+wPLI_csdrat = abs(num./den);
 t=toc;
-disp(['wPLI db summing terms, ' num2str(t) ' seconds']);
+disp(['wPLI ratio imag csd, ' num2str(t) ' seconds']);
 
-if(any([nA,nB]==1))
-    c=corr(wPLI_db(:),R_wPLI(:), 'rows','complete');
-else
-    c=compareconn(wPLI_db,R_wPLI);
-end
-disp(['comparison between the two debiased wPLIs = ' num2str(c)])
+% wPLI based on sine of a ratio without loop
+tic
+HA=HA';HB=HB';
+sin_pd=sin(angle(repmat(HA,[1 nA])./repelem(HB,1, nA)));
+a=abs(mean(sin_pd)./mean(abs(sin_pd)));
+N = numel(a) ;
+wPLI_sinrat = NaN(ceil(sqrt(N))) ;
+wPLI_sinrat(1:N) = a ;
+t=toc;
+disp(['wPLI sine ratio, ' num2str(t) ' seconds']);
 
-if(any([nA,nB]==1))
-    c=corr(wPLI_db(:),wPLI(:), 'rows','complete');
-else
-    c=compareconn(wPLI_db,wPLI);
-end
-disp(['comparison between wPLI debiased and wPLI = ' num2str(c)])
 
-if(any([nA,nB]==1))
-    c=corr(wPLI_db(:),R_ciPLV(:), 'rows','complete');
-else
-    c=compareconn(wPLI_db,R_ciPLV);
+% wPLI debiased ratio imag csd
+tic
+num = imag(phaseA*phaseB');
+den = zeros(nA,nB);sqd = zeros(nA,nB);
+for t = 1:nt
+    den = den + abs(imag(phaseA(:,t) * phaseB(:,t)'));
+    sqd = sqd + imag(phaseA(:,t)*phaseB(:,t)').^2;
 end
-disp(['comparison between wPLI debiased and ciPLV = ' num2str(c)])
+wPLI_db_csdrat = (num.^2-sqd)./(den.^2-sqd);
+t=toc;
+disp(['wPLI debiased ratio imag csd, ' num2str(t) ' seconds']);
 
-if(any([nA,nB]==1))
-    c=corr(R_ciPLV(:),wPLI(:), 'rows','complete');
-else
-    c=compareconn(R_ciPLV,wPLI);
+% fieldtrip wPLI
+tic
+num = zeros(nA,nB);
+den = zeros(nA,nB);
+for t = 1:nt
+    num = num + imag(phaseA(:,t)*phaseB(:,t)');
+    den = den + abs(imag(phaseA(:,t) * phaseB(:,t)'));
 end
-disp(['comparison between ciPLV and wPLI = ' num2str(c)])
+wPLI_ft = abs(num./den);
+t=toc;
+disp(['wPLI fieldtrip, ' num2str(t) ' seconds']);
 
-[nr,nc]=size(R_ciPLV);
-if nr==nc
-    N=max(nr,nc);
-    Isubdiag = find(tril(ones(N),-1));
-    R_ciPLV=R_ciPLV(Isubdiag);
-    wPLI_db=wPLI_db(Isubdiag);
+% fieldtrip db wPLI
+tic
+num = zeros(nA,nB);
+den = zeros(nA,nB);
+sqd = zeros(nA,nB);
+for t = 1:nt
+    num = num + imag(phaseA(:,t)*phaseB(:,t)');
+    den = den + abs(imag(phaseA(:,t) * phaseB(:,t)'));
+    sqd = sqd + imag(phaseA(:,t)*phaseB(:,t)').^2;
 end
-scatter(R_ciPLV,wPLI_db);xlim([-.05 1.05]);ylim([-.05 1.05])
+wPLI_db_ft = (num.^2-sqd)./(den.^2-sqd);
+t=toc;
+disp(['wPLI db fieldtrip, ' num2str(t) ' seconds']);
+
+
+measures={'PLV','ciPLV','wPLI_sc','wPLI_sindiff','wPLI_sinrat',...
+    'wPLI_csdrat','wPLI_ft','wPLI_db_csdrat','wPLI_db_ft'};
+comp_meas=ones(length(measures));
+for imeas=1:length(measures)
+    for jmeas=1:imeas
+        if imeas~=jmeas
+            eval(['A=',measures{imeas},';']);
+            eval(['B=',measures{jmeas},';']);
+            [nr,nc]=size(A);
+            if(any([nr,nc]==1))
+                comp_meas(imeas,jmeas)=corr(A(:),B(:), 'rows','complete');
+                comp_meas(jmeas,imeas)=comp_meas(imeas,jmeas);
+            else
+                comp_meas(imeas,jmeas)=compareconn(A,B);
+                comp_meas(jmeas,imeas)=comp_meas(imeas,jmeas);
+            end
+        end
+    end
+end
+set(groot,'defaultAxesTickLabelInterpreter','none');
+imagesc(comp_meas);%colormap gray
+set(gca,'XTick',1:length(measures),'XTickLabel',measures)
+set(gca,'YTick',1:length(measures),'YTickLabel',measures)
+xtickangle(45);colorbar;
+
+% [nr,nc]=size(R_ciPLV);
+% if nr==nc
+%     N=max(nr,nc);
+%     Isubdiag = find(tril(ones(N),-1));
+%     R_ciPLV=R_ciPLV(Isubdiag);
+%     wPLI_db=wPLI_db(Isubdiag);
+% end
+% scatter(R_ciPLV,wPLI_db);xlim([-.05 1.05]);ylim([-.05 1.05])
