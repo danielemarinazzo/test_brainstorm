@@ -1,9 +1,14 @@
+% this script tests several connectivity measures in a time-resolved way,
+% i.e. computing phase consistency across trials per each time point.
+% The simulated data represent coupling starting at 1/3 of the trial,
+% either with instantaneous coupling, or with lagged one. 
+
 clear
 load test_PLI_timevarying
 
-% choose here "delay" or "nodelay", or comment everything to use real data
-%datah=datah_simulated_delay; %lagged influence, also corrected measures should change
-datah=datah_simulated_nodelay; %zero lag influence, only noncorrected measures should change
+% choose here "delay" or "nodelay". datah is already filtered and hilbert transformed
+ datah=datah_simulated_delay; %lagged influence, also corrected measures should change
+% datah=datah_simulated_nodelay; %zero lag influence, only noncorrected measures should change
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 [nc, ns, nt]=size(datah);
