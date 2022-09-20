@@ -1,3 +1,6 @@
+% this script compares different connectivity measures in the static case
+% (variables and time points, single trial)
+
 clear;clc
 % uncomment/comment accordingly below.
 % test_channels is 274 variables, 361 time points
@@ -95,7 +98,8 @@ wPLI_db_csdrat = (num.^2-sqd)./(den.^2-sqd);
 t=toc;
 disp(['wPLI debiased ratio imag csd, ' num2str(t) ' seconds']);
 
-% fieldtrip wPLI
+% "fieldtrip-like" wPLI (there they do it for many trials though)
+% https://github.com/fieldtrip/fieldtrip/blob/master/connectivity/ft_connectivity_wpli.m
 tic
 num = zeros(nA,nB);
 den = zeros(nA,nB);
@@ -107,7 +111,8 @@ wPLI_ft = abs(num./den);
 t=toc;
 disp(['wPLI fieldtrip, ' num2str(t) ' seconds']);
 
-% fieldtrip db wPLI
+% "fieldtrip-like" debiased wPLI (there they do it for many trials though)
+% https://github.com/fieldtrip/fieldtrip/blob/master/connectivity/ft_connectivity_wpli.m
 tic
 num = zeros(nA,nB);
 den = zeros(nA,nB);
