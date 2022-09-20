@@ -18,28 +18,33 @@ iB = reshape(repmat(1:nB, nA, 1), [], 1);
 
 ndat=datah ./ abs(datah);
 
-Rs=complex(zeros(nt,nA*nB),0);ciRs=Rs;wRs=Rs;wRsnum=Rs;wRsden=Rs;wRsdiff=Rs;wRsdb=Rs;
+R_PLV=complex(zeros(nt,nA*nB),0);R_ciPLV=R_PLV;R_WPLI=R_PLV;
+R_dbWPLI_num=R_PLV;R_dbWPLI_den=R_PLV;R_dbWPLI_sqd=R_PLV;
 % Brainstorm-style implementation
 tic
 for itrials=1:ns
     HA=squeeze(datah(:,itrials,:));HB=squeeze(datah(:,itrials,:));
     phaseA = HA(iA,:) ./ abs(HA(iA,:));
     phaseB = HB(iB,:) ./ abs(HB(iB,:));
-    Rs=Rs+(phaseA .* conj(phaseB))';
-    ciRs=ciRs+(imag((phaseA .* conj(phaseB))'))./(real((phaseA .* conj(phaseB))')/nt).*conj((real(phaseA .* conj(phaseB))')/nt);
+    R_PLV=R_PLV+(phaseA .* conj(phaseB))';
+    R_ciPLV=R_ciPLV+(imag((phaseA .* conj(phaseB))'))./(real((phaseA .* conj(phaseB))')/nt).*conj((real(phaseA .* conj(phaseB))')/nt);
     cdd = phaseA .* conj(phaseB);
     cdi = imag(cdd);
-    wRs=wRs+(abs(cdi).*sign(cdi))'./abs(cdi)';
-    wRsnum=wRsnum+(abs(cdi).*sign(cdi))';
-    wRsdiff=wRsdiff-(((abs(cdi).*sign(cdi))').^2)/nt;
-    wRsden=wRsden+abs(cdi)';
+    R_WPLI=R_WPLI+(abs(cdi).*sign(cdi))'./abs(cdi)';
+    R_dbWPLI_num=R_dbWPLI_num+(abs(cdi).*sign(cdi))';
+    R_dbWPLI_sqd=R_dbWPLI_sqd-(((abs(cdi).*sign(cdi))').^2)/nt;
+    R_dbWPLI_den=R_dbWPLI_den+abs(cdi)';
 end
 toc
 
-PLV=abs(Rs(:,2)/ns);
-ciPLV=abs(ciRs(:,2)/ns);
-wPLI=abs(wRs/ns);
-wPLI_db=sqrt((wRsnum.^2-wRsdiff)./((wRsden.^2-wRsdiff)));
+% here just abs and divide by the number of trials, except for the debiased
+% wPLI. We should find a solution for this latter part for implementation in
+% Brainstorm 
+
+PLV=abs(R_PLV(:,2)/ns);
+ciPLV=abs(R_ciPLV(:,2)/ns);
+wPLI=abs(R_WPLI/ns);
+wPLI_db=sqrt((R_dbWPLI_num.^2-R_dbWPLI_sqd)./((R_dbWPLI_den.^2-R_dbWPLI_sqd)));
 figure
 plot(PLV)
 hold on
@@ -47,5 +52,5 @@ plot(ciPLV,'r')
 plot(wPLI(:,2),'g')
 plot(wPLI_db(:,2),'m')
 ylim([0 1]);
-legend('PLV', 'ciPLV','wPLI','wPLI\_db');
+legend('PLV', 'ciPLV','wPLI','wPLI debiased');
 
