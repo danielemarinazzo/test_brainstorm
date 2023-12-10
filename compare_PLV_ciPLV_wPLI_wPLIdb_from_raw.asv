@@ -1,14 +1,25 @@
 % this script compares different connectivity measures in the static case
-% (variables and time points, single trial), starting from filtered and
-% hilberted data, in brainstorm format
+% (variables and time points, single trial), starting from raw data (68
+% regions, 5801 time points), sampling frequency 600 Hz
 
 clear;clc
-% uncomment/comment accordingly below.
-% test_channels is 274 variables, 361 time points
-% test_vertices is 4002 variables, 52 time points
-load('test_channels.mat');
-%load('test_vertices.mat')
-%HA=HA(1,:); % this is for 1xN scenario, comment for NxN
+
+load('raw_data.mat')
+
+[b, a] = butter(3, [13, 30] / (fs/ 2), 'bandpass'); % design a filter in beta band
+%%
+for i=1:100
+% either we first filter then hilbert
+tic;
+filtered_beta=filtfilt(b, a, data);
+HA=hilbert(filtered_beta);
+HB=HA;
+t1=toc;tic
+% or filter and hilbert in fourier space
+HA = my_filtfilt ( b, a, data, 'true');
+HB=HA;
+
+
 [nA,~]=size(HA);
 [nB,nt]=size(HB);
 
