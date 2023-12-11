@@ -6,16 +6,19 @@ clear;clc
 
 load('raw_data.mat')
 data=data';
-[b, a] = butter(3, [13, 30] / (fs/ 2), 'bandpass'); % design a filter in beta band
-%%
-% either we first filter then hilbert
-filtered_beta=filtfilt(b, a, data);
-HA=hilbert(filtered_beta);HA=HA';
-HB=HA;
+Ws=[13, 30]; % define band pass
+[b, a] = butter(3, Ws / (fs/ 2), 'bandpass'); % design a filter
+hilbert_in_freq=1; % whether you want to Hilbert in frequency domain, together with filtering
 
-% or filter and hilbert in fourier space
-%HA = my_filtfilt ( b, a, data, 'true');HA=HA';
-%HB=HA;
+if hilbert_in_freq
+    HA = my_filtfilt ( b, a, data, 'true');HA=HA';
+    HB=HA;
+else
+    filtered=filtfilt(b, a, data);
+    HA=hilbert(filtered);HA=HA';
+    HB=HA;
+end
+
 
 %%
 [nA,~]=size(HA);
